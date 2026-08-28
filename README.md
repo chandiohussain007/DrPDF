@@ -4,6 +4,15 @@ Local-first, offline PDF editor. C++20 + Qt 6. No accounts, no uploads, no telem
 
 > Everything a PDF tool should be. Nothing it shouldn't.
 
+## Project Status
+
+🚧 **Early development — Milestone 1**
+
+Dr PDF is under active development. The core PDF engine and desktop shell are functional, while several editing features are still being implemented.
+
+Expect breaking changes while the v1 roadmap is being completed.
+
+
 This is **Milestone 1** of the v1 roadmap (core engine + shell + the structural tools). Copy this folder onto your machine and build it there.
 
 ## What works now
@@ -124,8 +133,39 @@ tests/                  core tests (no Qt)
 4. **M4** — Tesseract OCR, image-downsample compress, signatures + PKCS#12
 5. **M5** — installers (MSIX / notarized dmg / AppImage), accessibility pass, perf
 
+
+
+## Contributing
+
+Contributions are welcome.
+
+Before opening a pull request:
+
+1. Build the project successfully.
+2. Run the test suite.
+3. Keep changes focused and documented.
+4. Follow the existing C++ formatting and project structure.
+
+For larger changes, please open an issue first to discuss the proposed approach.
+
+## Security
+
+PDF files are complex and potentially untrusted input.
+
+If you discover a security vulnerability in Dr PDF, please report it privately rather than opening a public issue with exploit details.
+
+Security reports will be investigated as a priority.
+
+
 ## License
 
-Application code: all rights reserved to you (the project owner).
+## License
 
-Third-party: QPDF (Apache-2.0), Qt (LGPL/commercial — use a dynamic Qt build unless you have a Qt commercial license), PDFium via Qt PDF (BSD-style).
+Dr PDF is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+Third-party dependencies are distributed under their respective licenses.
+
+
+**Qt licensing:** Qt is available under LGPL and commercial licenses. If you distribute Dr PDF with Qt under the LGPL, make sure your distribution complies with the applicable Qt LGPL terms. See Qt's official licensing documentation for details.
+
+
