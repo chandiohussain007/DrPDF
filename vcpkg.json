@@ -1,0 +1,10 @@
+{
+  "name": "dr-pdf",
+  "version-string": "0.1.0",
+  "description": "Local-first, offline PDF editor",
+  "homepage": "https://github.com",
+  "dependencies": [
+    "qpdf",
+    "openssl"
+  ]
+}

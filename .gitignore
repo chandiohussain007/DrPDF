@@ -1,0 +1,15 @@
+build/
+out/
+cmake-build-*/
+.vs/
+.idea/
+.cache/
+*.user
+*.autosave
+CMakeUserPresets.json
+vcpkg_installed/
+.DS_Store
+Thumbs.db
+*.pdf
+!tests/fixtures/.gitkeep
+compile_commands.json
