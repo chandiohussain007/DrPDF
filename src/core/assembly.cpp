@@ -51,7 +51,7 @@ void applyEncryption(QPDFWriter& writer, const WriteOptions& options) {
                                      true,  // annotate + form
                                      true,  // form filling
                                      true,  // modify other
-                                     qpdf_r3_print_full, true);
+                                      qpdf_r3p_full, true);
 }
 
 PdfInfo makeInfo(const std::filesystem::path& file, QPDF& pdf) {

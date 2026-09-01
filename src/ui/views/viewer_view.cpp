@@ -29,8 +29,8 @@ ViewerView::ViewerView(QWidget* parent) : QWidget(parent) {
     doc_ = new QPdfDocument(this);
     view_ = new QPdfView(this);
     view_->setDocument(doc_);
-    view_->setPageMode(QPdfView::MultiPage);
-    view_->setZoomMode(QPdfView::FitInView);
+    view_->setPageMode(QPdfView::PageMode::MultiPage);
+    view_->setZoomMode(QPdfView::ZoomMode::FitInView);
 
 
     root->addLayout(top);

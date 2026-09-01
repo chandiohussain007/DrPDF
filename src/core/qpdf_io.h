@@ -13,11 +13,6 @@ inline const char* qpdfPassword(const std::string& password) {
 
 inline void qpdfProcessFile(QPDF& pdf, const std::filesystem::path& path,
                             const std::string& password = {}) {
-#ifdef _WIN32
-    pdf.processFile(path.wstring().c_str(), qpdfPassword(password));
-#else
-    pdf.processFile(path.string().c_str(), qpdfPassword(password));
-#endif
+pdf.processFile(path.string().c_str(), qpdfPassword(password));
 }
-
 } // namespace drpdf::core

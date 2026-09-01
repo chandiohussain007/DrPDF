@@ -25,6 +25,6 @@ private:
     QString key(const QString& path, int page, const QSize& size) const;
     QHash<QString, QImage> cache_;
     QSet<QString> inflight_;
-;
+};
 
 } // namespace drpdf
