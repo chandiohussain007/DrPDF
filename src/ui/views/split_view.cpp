@@ -62,6 +62,22 @@ SplitView::SplitView(ThumbnailCache* cache, QWidget* parent) : QWidget(parent) {
     grid_ = new PageGrid(cache, this);
     grid_->setAssembly(&assembly_);
     banner_ = new Banner(this);
+    connect(grid_, &PageGrid::rotateRequested, this, [this](int deg) {
+        grid_->applyVisualOrder();
+        for (int r : grid_->selectedRows()) {
+            assembly_.rotate(r, deg);
+        }
+        grid_->refresh();
+    });
+    connect(grid_, &PageGrid::deleteRequested, this, [this] {
+        grid_->applyVisualOrder();
+        auto rows = grid_->selectedRows();
+        for (int i = rows.size() - 1; i >= 0; --i) {
+            assembly_.setIncluded(rows[i], false);
+        }
+        grid_->refresh();
+    });
+
 
     auto* go = new QPushButton(QStringLiteral("Export"), this);
     go->setProperty("primary", true);

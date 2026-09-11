@@ -3,18 +3,30 @@
 #include "app/settings.h"
 #include "services/thumbnails.h"
 #include "ui/icons/icons.h"
+#include "ui/shell/sidebar.h"
+#include "ui/shell/title_bar.h"
+#include "ui/shell/menu_bar.h"
+#include "ui/shell/ribbon_bar.h"
+#include "ui/shell/icon_rail.h"
+#include "ui/shell/status_bar.h"
 #include "ui/theme/theme.h"
+
+#include "ui/views/annotate_view.h"
 #include "ui/views/coming_soon_view.h"
 #include "ui/views/command_palette.h"
 #include "ui/views/compress_view.h"
 #include "ui/views/create_view.h"
+#include "ui/views/edit_view.h"
 #include "ui/views/home_view.h"
 #include "ui/views/images_view.h"
 #include "ui/views/merge_view.h"
+#include "ui/views/ocr_view.h"
 #include "ui/views/organize_view.h"
 #include "ui/views/protect_view.h"
+#include "ui/views/sign_view.h"
 #include "ui/views/split_view.h"
 #include "ui/views/viewer_view.h"
+#include "ui/views/watermark_view.h"
 
 #include <QApplication>
 #include <QDragEnterEvent>
@@ -25,7 +37,6 @@
 #include <QLabel>
 #include <QMimeData>
 #include <QStackedWidget>
-#include <QStatusBar>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -33,32 +44,22 @@ namespace drpdf {
 namespace {
 
 bool allPdf(const QStringList& paths) {
-    if (paths.isEmpty()) {
-        return false;
-    }
+    if (paths.isEmpty()) return false;
     for (const auto& p : paths) {
-        if (!p.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) {
-            return false;
-        }
+        if (!p.endsWith(QLatin1String(".pdf"), Qt::CaseInsensitive)) return false;
     }
     return true;
 }
 
 bool allImages(const QStringList& paths) {
-    if (paths.isEmpty()) {
-        return false;
-    }
+    if (paths.isEmpty()) return false;
     static const QStringList ext{".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp", ".heic"};
     for (const auto& p : paths) {
         bool ok = false;
         for (const auto& e : ext) {
-            if (p.endsWith(e, Qt::CaseInsensitive)) {
-                ok = true;
-            }
+            if (p.endsWith(e, Qt::CaseInsensitive)) ok = true;
         }
-        if (!ok) {
-            return false;
-        }
+        if (!ok) return false;
     }
     return true;
 }
@@ -76,76 +77,35 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     auto* root = new QWidget(this);
     root->setObjectName(QStringLiteral("Root"));
-    auto* outer = new QVBoxLayout(root);
-    outer->setContentsMargins(0, 0, 0, 0);
-    outer->setSpacing(0);
+    auto* rootLay = new QVBoxLayout(root);
+    rootLay->setContentsMargins(0, 0, 0, 0);
+    rootLay->setSpacing(0);
 
-    auto* top = new QWidget(root);
-    auto* topLay = new QHBoxLayout(top);
-    topLay->setContentsMargins(16, 10, 16, 10);
-    topLay->setSpacing(8);
-
-    back_ = new QToolButton(top);
-    back_->setIcon(Icons::named(QStringLiteral("back"), Theme::instance().tokens().text, 22));
-    back_->setToolTip(QStringLiteral("Home"));
-    back_->setVisible(false);
-    connect(back_, &QToolButton::clicked, this, [this] { showTool(Tool::Home); });
-
-    auto* brand = new QLabel(QStringLiteral("Dr PDF"), top);
-    QFont bf = brand->font();
-    bf.setPixelSize(15);
-    bf.setWeight(QFont::DemiBold);
-    brand->setFont(bf);
-
-    title_ = new QLabel(top);
-    title_->setProperty("muted", true);
-
-    auto* openBtn = new QToolButton(top);
-    openBtn->setText(QStringLiteral("Open"));
-    openBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    openBtn->setIcon(Icons::named(QStringLiteral("open"), Theme::instance().tokens().accent, 18));
-    connect(openBtn, &QToolButton::clicked, this, [this] {
+    // TitleBar
+    titleBar_ = new TitleBar(root);
+    connect(titleBar_, &TitleBar::openRequested, this, [this] {
         const auto files = QFileDialog::getOpenFileNames(
             this, QStringLiteral("Open"), AppSettings::instance().lastDirectory(),
             QStringLiteral("PDF and images (*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.webp);;PDF (*.pdf)"));
         openPaths(files);
     });
-
-    auto* paletteBtn = new QToolButton(top);
-    paletteBtn->setText(QStringLiteral("Ctrl+K"));
-    paletteBtn->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    paletteBtn->setIcon(Icons::named(QStringLiteral("search"), Theme::instance().tokens().muted, 18));
-    connect(paletteBtn, &QToolButton::clicked, this, [this] {
+    connect(titleBar_, &TitleBar::commandPaletteRequested, this, [this] {
         CommandPalette pal(this);
         connect(&pal, &CommandPalette::toolChosen, this, &MainWindow::showTool);
         pal.exec();
     });
 
-    auto* themeBtn = new QToolButton(top);
-    themeBtn->setToolTip(QStringLiteral("Toggle theme"));
-    auto setThemeIcon = [themeBtn] {
-        const bool dark = Theme::instance().dark();
-        themeBtn->setIcon(Icons::named(dark ? QStringLiteral("sun") : QStringLiteral("moon"),
-                                       Theme::instance().tokens().text, 20));
-    };
-    setThemeIcon();
-    connect(themeBtn, &QToolButton::clicked, this, [this, setThemeIcon] {
-        Theme::instance().toggle();
-        AppSettings::instance().setDarkTheme(Theme::instance().dark());
-        applyTheme();
-        setThemeIcon();
-        back_->setIcon(Icons::named(QStringLiteral("back"), Theme::instance().tokens().text, 22));
-    });
+    // MenuBar
+    menuBar_ = new MenuBar(root);
 
-    topLay->addWidget(back_);
-    topLay->addWidget(brand);
-    topLay->addSpacing(12);
-    topLay->addWidget(title_, 1);
-    topLay->addWidget(paletteBtn);
-    topLay->addWidget(openBtn);
-    topLay->addWidget(themeBtn);
+    // RibbonBar
+    ribbonBar_ = new RibbonBar(root);
+    connect(ribbonBar_, &RibbonBar::toolChosen, this, &MainWindow::showTool);
+    connect(ribbonBar_, &RibbonBar::quickSignRequested, this, [this] { showTool(Tool::Sign); });
 
+    // Main content: just the view stack (NO dock panels)
     stack_ = new QStackedWidget(root);
+
     home_ = new HomeView(stack_);
     create_ = new CreateView(stack_);
     images_ = new ImagesView(stack_);
@@ -155,23 +115,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     compress_ = new CompressView(stack_);
     protect_ = new ProtectView(stack_);
     viewer_ = new ViewerView(stack_);
-    auto* edit = new ComingSoonView(
-        Tool::Edit, QStringLiteral("Milestone 2"),
-        QStringLiteral("Click-to-edit existing text blocks, add/remove text boxes, replace images, redact."),
-        stack_);
-    auto* sign = new ComingSoonView(
-        Tool::Sign, QStringLiteral("Milestone 4"),
-        QStringLiteral("Draw, type, or stamp a signature. Optional local PKCS#12 certificate."),
-        stack_);
-    auto* ocr = new ComingSoonView(
-        Tool::Ocr, QStringLiteral("Milestone 4"),
-        QStringLiteral("Tesseract OCR, fully offline, optional language packs."), stack_);
-    auto* annotate = new ComingSoonView(
-        Tool::Annotate, QStringLiteral("Milestone 2"),
-        QStringLiteral("Highlight, comment, and freehand on the PDF annotation layer."), stack_);
-    auto* watermark = new ComingSoonView(
-        Tool::Watermark, QStringLiteral("Milestone 2"),
-        QStringLiteral("Batch watermark, page numbers, headers and footers."), stack_);
+    viewer_->setThumbnailCache(thumbs_);
+    edit_ = new EditView(stack_);
+    annotate_ = new AnnotateView(stack_);
+    watermark_ = new WatermarkView(stack_);
+    sign_ = new SignView(stack_);
+    ocr_ = new OcrView(stack_);
 
     stack_->addWidget(home_);        // 0
     stack_->addWidget(create_);      // 1
@@ -182,12 +131,25 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     stack_->addWidget(compress_);    // 6
     stack_->addWidget(protect_);     // 7
     stack_->addWidget(viewer_);      // 8
-    stack_->addWidget(edit);         // 9
-    stack_->addWidget(sign);         // 10
-    stack_->addWidget(ocr);          // 11
-    stack_->addWidget(annotate);     // 12
-    stack_->addWidget(watermark);    // 13
+    stack_->addWidget(edit_);        // 9
+    stack_->addWidget(sign_);        // 10
+    stack_->addWidget(ocr_);         // 11
+    stack_->addWidget(annotate_);    // 12
+    stack_->addWidget(watermark_);   // 13
 
+    // StatusBar
+    statusBar_ = new StatusBar(root);
+
+    rootLay->addWidget(titleBar_);
+    rootLay->addWidget(menuBar_);
+    rootLay->addWidget(ribbonBar_);
+    rootLay->addWidget(stack_, 1);
+    rootLay->addWidget(statusBar_);
+
+    setCentralWidget(root);
+    setAccessibleName(QStringLiteral("Dr PDF"));
+
+    // Connect view signals
     connect(home_, &HomeView::toolChosen, this, &MainWindow::showTool);
     connect(home_, &HomeView::filesDropped, this, &MainWindow::routeDropped);
     auto openViewer = [this](const QString& path) {
@@ -201,11 +163,12 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     connect(images_, &ImagesView::exported, this, openViewer);
     connect(protect_, &ProtectView::exported, this, openViewer);
     connect(compress_, &CompressView::exported, this, openViewer);
+    connect(edit_, &EditView::exported, this, openViewer);
+    connect(annotate_, &AnnotateView::exported, this, openViewer);
+    connect(watermark_, &WatermarkView::exported, this, openViewer);
+    connect(sign_, &SignView::exported, this, openViewer);
+    connect(ocr_, &OcrView::exported, this, openViewer);
 
-    outer->addWidget(top);
-    outer->addWidget(stack_, 1);
-    setCentralWidget(root);
-    statusBar()->showMessage(QStringLiteral("Offline · no telemetry · no account"));
     showTool(Tool::Home);
 }
 
@@ -218,60 +181,31 @@ void MainWindow::applyTheme() {
 void MainWindow::showTool(Tool tool) {
     int index = 0;
     switch (tool) {
-    case Tool::Home:
-        index = 0;
-        break;
-    case Tool::Create:
-        index = 1;
-        break;
-    case Tool::Images:
-        index = 2;
-        break;
-    case Tool::Merge:
-        index = 3;
-        break;
-    case Tool::Split:
-        index = 4;
-        break;
-    case Tool::Organize:
-        index = 5;
-        break;
-    case Tool::Compress:
-        index = 6;
-        break;
-    case Tool::Protect:
-        index = 7;
-        break;
-    case Tool::Viewer:
-        index = 8;
-        break;
-    case Tool::Edit:
-        index = 9;
-        break;
-    case Tool::Sign:
-        index = 10;
-        break;
-    case Tool::Ocr:
-        index = 11;
-        break;
-    case Tool::Annotate:
-        index = 12;
-        break;
-    case Tool::Watermark:
-        index = 13;
-        break;
+    case Tool::Home: index = 0; break;
+    case Tool::Create: index = 1; break;
+    case Tool::Images: index = 2; break;
+    case Tool::Merge: index = 3; break;
+    case Tool::Split: index = 4; break;
+    case Tool::Organize: index = 5; break;
+    case Tool::Compress: index = 6; break;
+    case Tool::Protect: index = 7; break;
+    case Tool::Viewer: index = 8; break;
+    case Tool::Edit: index = 9; break;
+    case Tool::Sign: index = 10; break;
+    case Tool::Ocr: index = 11; break;
+    case Tool::Annotate: index = 12; break;
+    case Tool::Watermark: index = 13; break;
     }
     stack_->setCurrentIndex(index);
-    back_->setVisible(tool != Tool::Home);
-    title_->setText(tool == Tool::Home ? QString() : toolTitle(tool));
+    if (ribbonBar_) {
+        ribbonBar_->setCurrentTool(tool);
+    }
 }
 
 void MainWindow::openPaths(const QStringList& paths) { routeDropped(paths); }
 
 void MainWindow::routeDropped(const QStringList& paths) {
-    if (paths.isEmpty()) {
-        return;
-    }
+    if (paths.isEmpty()) return;
     if (allImages(paths)) {
         images_->addImages(paths);
         showTool(Tool::Images);
@@ -294,17 +228,13 @@ void MainWindow::routeDropped(const QStringList& paths) {
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
-    if (event->mimeData()->hasUrls()) {
-        event->acceptProposedAction();
-    }
+    if (event->mimeData()->hasUrls()) event->acceptProposedAction();
 }
 
 void MainWindow::dropEvent(QDropEvent* event) {
     QStringList paths;
     for (const auto& url : event->mimeData()->urls()) {
-        if (url.isLocalFile()) {
-            paths << url.toLocalFile();
-        }
+        if (url.isLocalFile()) paths << url.toLocalFile();
     }
     routeDropped(paths);
 }

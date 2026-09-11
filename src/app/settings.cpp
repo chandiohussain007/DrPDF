@@ -1,7 +1,9 @@
 #include "settings.h"
 
+#include <QFileInfo>
 #include <QSettings>
 #include <QStandardPaths>
+
 
 namespace drpdf {
 
@@ -31,7 +33,12 @@ void AppSettings::addRecentFile(const QString& path) {
         list.removeLast();
     }
     s_->setValue(QStringLiteral("files/recent"), list);
+    const QFileInfo fi(path);
+    if (fi.exists()) {
+        setLastDirectory(fi.absolutePath());
+    }
 }
+
 
 void AppSettings::clearRecent() { s_->remove(QStringLiteral("files/recent")); }
 
@@ -44,5 +51,14 @@ QString AppSettings::lastDirectory() const {
 void AppSettings::setLastDirectory(const QString& dir) {
     s_->setValue(QStringLiteral("files/lastDir"), dir);
 }
+
+bool AppSettings::sidebarCollapsed() const {
+    return s_->value(QStringLiteral("ui/sidebarCollapsed"), false).toBool();
+}
+
+void AppSettings::setSidebarCollapsed(bool collapsed) {
+    s_->setValue(QStringLiteral("ui/sidebarCollapsed"), collapsed);
+}
+
 
 } // namespace drpdf

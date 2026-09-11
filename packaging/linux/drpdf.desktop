@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Dr PDF
+Comment=Local-first offline PDF editor
+Exec=DrPdf %F
+Icon=drpdf
+Terminal=false
+Categories=Office;Viewer;Graphics;
+MimeType=application/pdf;
+StartupNotify=true
+Keywords=PDF;editor;offline;

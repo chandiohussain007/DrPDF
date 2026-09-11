@@ -9,14 +9,26 @@
 #include <QGridLayout>
 #include <QLabel>
 #include <QListWidget>
+#include <QScrollArea>
 #include <QVBoxLayout>
 
 namespace drpdf {
 
 HomeView::HomeView(QWidget* parent) : QWidget(parent) {
     auto* root = new QVBoxLayout(this);
-    root->setContentsMargins(32, 24, 32, 24);
-    root->setSpacing(18);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
+
+    // Everything below lives inside a scroll area so the tool grid and the recent
+    // list are NEVER clipped or hidden behind each other when the window is small.
+    auto* scroller = new QScrollArea(this);
+    scroller->setWidgetResizable(true);
+    scroller->setFrameShape(QFrame::NoFrame);
+    scroller->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto* content = new QWidget(scroller);
+    auto* inner = new QVBoxLayout(content);
+    inner->setContentsMargins(32, 24, 32, 24);
+    inner->setSpacing(18);
 
     auto* kicker = new QLabel(QStringLiteral("LOCAL-FIRST PDF WORKSPACE"), this);
     kicker->setProperty("muted", true);
@@ -27,6 +39,8 @@ HomeView::HomeView(QWidget* parent) : QWidget(parent) {
     kicker->setFont(kf);
 
     auto* title = new QLabel(QStringLiteral("Dr PDF"), this);
+    title->setProperty("gold", true);
+
     QFont tf = title->font();
     tf.setPixelSize(34);
     tf.setWeight(QFont::Bold);
@@ -58,21 +72,25 @@ HomeView::HomeView(QWidget* parent) : QWidget(parent) {
         bool ready;
     };
     const Spec specs[] = {
-        {Tool::Create, "create", "Create PDF", "Write like a document, export as PDF", true},
+        {Tool::Create, "create", "Create PDF", "Coming soon — being rebuilt", false},
+
         {Tool::Images, "images", "Images to PDF", "JPG, PNG, TIFF, WebP — one file", true},
         {Tool::Merge, "merge", "Merge", "Combine PDFs, drag to reorder", true},
         {Tool::Split, "split", "Split / Extract", "Ranges, every N, or pick pages", true},
         {Tool::Organize, "organize", "Organize", "Rotate, reorder, delete pages", true},
-        {Tool::Compress, "compress", "Compress", "Optimize streams, shrink files", true},
+        {Tool::Compress, "compress", "Compress", "Lossless or downsample images", true},
         {Tool::Protect, "protect", "Protect", "AES-256 lock or remove a password", true},
         {Tool::Viewer, "viewer", "Viewer", "Open and read a PDF", true},
-        {Tool::Edit, "edit", "Edit text", "Block-level text editing", false},
-        {Tool::Sign, "sign", "Sign", "Draw, type, or stamp a signature", false},
-        {Tool::Ocr, "ocr", "OCR", "Make scans searchable, fully offline", false},
-        {Tool::Annotate, "annotate", "Annotate", "Highlight, comment, draw", false},
+        {Tool::Edit, "edit", "Edit text", "Replace runs, add text/images, redact", true},
+        {Tool::Annotate, "annotate", "Annotate", "Highlight, comment, ink, free text", true},
+        {Tool::Watermark, "watermark", "Watermark", "Stamp, headers, page numbers", true},
+        {Tool::Sign, "sign", "Sign", "Draw, type, stamp, optional PKCS#12", true},
+        {Tool::Ocr, "ocr", "OCR", "Make scans searchable, fully offline", true},
     };
 
     int i = 0;
+
+
     for (const auto& s : specs) {
         auto* card = new ToolCard(s.tool, QString::fromUtf8(s.icon), QString::fromUtf8(s.title),
                                   QString::fromUtf8(s.sub), s.ready, this);
@@ -98,15 +116,18 @@ HomeView::HomeView(QWidget* parent) : QWidget(parent) {
         emit filesDropped(QStringList{it->data(Qt::UserRole).toString()});
     });
 
-    root->addWidget(kicker);
-    root->addWidget(title);
-    root->addWidget(sub);
-    root->addWidget(drop);
-    root->addLayout(grid);
-    root->addSpacing(8);
-    root->addWidget(recentLabel);
-    root->addWidget(recent);
-    root->addStretch();
+    inner->addWidget(kicker);
+    inner->addWidget(title);
+    inner->addWidget(sub);
+    inner->addWidget(drop);
+    inner->addLayout(grid);
+    inner->addSpacing(8);
+    inner->addWidget(recentLabel);
+    inner->addWidget(recent);
+    inner->addStretch();
+
+    scroller->setWidget(content);
+    root->addWidget(scroller);
 }
 
 } // namespace drpdf

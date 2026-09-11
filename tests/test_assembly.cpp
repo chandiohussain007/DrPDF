@@ -26,6 +26,10 @@ static int g_failed = 0;
     } while (0)
 
 int run_range_tests();
+int run_edit_tests();
+int run_ocr_tests();
+
+
 
 static void writeBlankPdf(const fs::path& path, int pages) {
     QPDF pdf;
@@ -88,6 +92,10 @@ int main() {
     CHECK(is.value().pageCount == 2);
 
     g_failed += run_range_tests();
+    g_failed += run_edit_tests();
+    g_failed += run_ocr_tests();
+
+
 
     if (g_failed == 0) {
         std::cout << "all tests passed\n";

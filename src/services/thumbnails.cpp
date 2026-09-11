@@ -4,7 +4,6 @@
 #include <QPointer>
 #include <QtConcurrent>
 
-
 namespace drpdf {
 
 ThumbnailCache::ThumbnailCache(QObject* parent) : QObject(parent) {}
@@ -18,13 +17,24 @@ QImage ThumbnailCache::get(const QString& path, int page, const QSize& size) con
     return cache_.value(key(path, page, size));
 }
 
+void ThumbnailCache::insert(const QString& k, const QImage& img) {
+    if (cache_.contains(k)) {
+        lru_.removeAll(k);
+    }
+    cache_.insert(k, img);
+    lru_.push_back(k);
+    while (lru_.size() > kMaxEntries) {
+        const QString old = lru_.takeFirst();
+        cache_.remove(old);
+    }
+}
+
 void ThumbnailCache::request(const QString& path, int page, const QSize& size) {
     const QString k = key(path, page, size);
     if (cache_.contains(k) || inflight_.contains(k)) {
         return;
     }
     inflight_.insert(k);
-
 
     QPointer<ThumbnailCache> self(this);
     (void)QtConcurrent::run([self, path, page, size, k]() {
@@ -45,9 +55,8 @@ void ThumbnailCache::request(const QString& path, int page, const QSize& size) {
                 }
                 self->inflight_.remove(k);
                 if (!img.isNull()) {
-                    self->cache_.insert(k, img);
+                    self->insert(k, img);
                 }
-
                 emit self->ready(path, page, img);
             },
             Qt::QueuedConnection);

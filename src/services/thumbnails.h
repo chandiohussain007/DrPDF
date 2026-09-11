@@ -2,11 +2,11 @@
 
 #include <QHash>
 #include <QImage>
+#include <QList>
 #include <QObject>
 #include <QSet>
 #include <QSize>
 #include <QString>
-
 
 namespace drpdf {
 
@@ -23,8 +23,12 @@ signals:
 
 private:
     QString key(const QString& path, int page, const QSize& size) const;
+    void insert(const QString& k, const QImage& img);
+
     QHash<QString, QImage> cache_;
     QSet<QString> inflight_;
+    QList<QString> lru_;
+    static constexpr int kMaxEntries = 256;
 };
 
 } // namespace drpdf

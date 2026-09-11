@@ -9,6 +9,8 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QTimer>
+#include <QtMath>
 
 namespace drpdf {
 namespace {
@@ -33,6 +35,15 @@ DropZone::DropZone(QWidget* parent) : QWidget(parent) {
     setMinimumHeight(168);
     setCursor(Qt::PointingHandCursor);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    setAccessibleName(QStringLiteral("Drop zone"));
+    setAccessibleDescription(QStringLiteral("Drop PDF or image files here, or click to browse"));
+    setFocusPolicy(Qt::StrongFocus);
+    pulse_ = new QTimer(this);
+    pulse_->setInterval(40);
+    connect(pulse_, &QTimer::timeout, this, [this] {
+        phase_ += 0.12;
+        update();
+    });
 }
 
 void DropZone::setTitle(const QString& title) {
@@ -55,22 +66,28 @@ QStringList DropZone::filter(const QStringList& in) const {
     return out;
 }
 
+void DropZone::setHover(bool on) {
+    hover_ = on;
+    if (on) {
+        phase_ = 0;
+        pulse_->start();
+    } else {
+        pulse_->stop();
+    }
+    update();
+}
+
 void DropZone::dragEnterEvent(QDragEnterEvent* event) {
     if (event->mimeData()->hasUrls()) {
         event->acceptProposedAction();
-        hover_ = true;
-        update();
+        setHover(true);
     }
 }
 
-void DropZone::dragLeaveEvent(QDragLeaveEvent*) {
-    hover_ = false;
-    update();
-}
+void DropZone::dragLeaveEvent(QDragLeaveEvent*) { setHover(false); }
 
 void DropZone::dropEvent(QDropEvent* event) {
-    hover_ = false;
-    update();
+    setHover(false);
     QStringList paths;
     for (const auto& url : event->mimeData()->urls()) {
         if (url.isLocalFile()) {
@@ -89,9 +106,11 @@ void DropZone::mouseReleaseEvent(QMouseEvent* event) {
     }
     QString filterStr;
     if (acceptPdf_ && acceptImages_) {
-        filterStr = QStringLiteral("Documents (*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp);;All files (*)");
+        filterStr = QStringLiteral(
+            "Documents (*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp);;All files (*)");
     } else if (acceptImages_) {
-        filterStr = QStringLiteral("Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp *.heic);;All files (*)");
+        filterStr =
+            QStringLiteral("Images (*.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp *.heic);;All files (*)");
     } else {
         filterStr = QStringLiteral("PDF files (*.pdf);;All files (*)");
     }
@@ -107,11 +126,18 @@ void DropZone::paintEvent(QPaintEvent*) {
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
     QPainterPath path;
-    path.addRoundedRect(rect().adjusted(1, 1, -1, -1), 16, 16);
+    path.addRoundedRect(rect().adjusted(2, 2, -2, -2), 12, 12);
     p.fillPath(path, hover_ ? t.surfaceHover : t.surface);
-    QPen pen(hover_ ? t.accent : t.border, hover_ ? 2 : 1, Qt::DashLine);
+
+    QColor dash = hover_ ? QColor("#38BDF8") : t.border;
+    if (hover_) {
+        const qreal a = 0.45 + 0.55 * (0.5 + 0.5 * qSin(phase_));
+        dash.setAlphaF(a);
+    }
+    QPen pen(dash, hover_ ? 2 : 1, Qt::DashLine);
     p.setPen(pen);
     p.drawPath(path);
+
     p.setPen(t.text);
     QFont f = font();
     f.setPixelSize(16);

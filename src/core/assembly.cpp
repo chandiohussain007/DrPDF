@@ -1,6 +1,8 @@
 #include "assembly.h"
 
+#include "qpdf_compat.h"
 #include "qpdf_io.h"
+
 
 #include <qpdf/Constants.h>
 #include <qpdf/QPDFPageDocumentHelper.hh>
@@ -51,7 +53,8 @@ void applyEncryption(QPDFWriter& writer, const WriteOptions& options) {
                                      true,  // annotate + form
                                      true,  // form filling
                                      true,  // modify other
-                                      qpdf_r3p_full, true);
+                                     DRPDF_R3_PRINT_FULL, true);
+
 }
 
 PdfInfo makeInfo(const std::filesystem::path& file, QPDF& pdf) {
@@ -195,7 +198,7 @@ Result<void> Assembly::write(const std::filesystem::path& output,
         }
 
         QPDFWriter writer(out);
-        writer.setOutputFilename(output.string().c_str());
+        writer.setOutputFilename(pathToUtf8(output).c_str());
         applyWriterFlags(writer, options);
         applyEncryption(writer, options);
         writer.write();
@@ -212,7 +215,7 @@ Result<void> optimizePdf(const std::filesystem::path& input, const std::filesyst
         pdf.setSuppressWarnings(true);
         qpdfProcessFile(pdf, input, password);
         QPDFWriter writer(pdf);
-        writer.setOutputFilename(output.string().c_str());
+        writer.setOutputFilename(pathToUtf8(output).c_str());
         WriteOptions opt;
         opt.optimizeStreams = true;
         opt.objectStreams = true;
@@ -231,7 +234,7 @@ Result<void> decryptPdf(const std::filesystem::path& input, const std::filesyste
         pdf.setSuppressWarnings(true);
         qpdfProcessFile(pdf, input, password);
         QPDFWriter writer(pdf);
-        writer.setOutputFilename(output.string().c_str());
+        writer.setOutputFilename(pathToUtf8(output).c_str());
         writer.setCompressStreams(true);
         writer.write();
         return {};
@@ -248,7 +251,7 @@ Result<void> encryptPdf(const std::filesystem::path& input, const std::filesyste
         pdf.setSuppressWarnings(true);
         qpdfProcessFile(pdf, input, currentPassword);
         QPDFWriter writer(pdf);
-        writer.setOutputFilename(output.string().c_str());
+        writer.setOutputFilename(pathToUtf8(output).c_str());
         WriteOptions opt;
         opt.userPassword = userPassword;
         opt.ownerPassword = ownerPassword.empty() ? userPassword : ownerPassword;

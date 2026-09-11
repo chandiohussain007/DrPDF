@@ -4,6 +4,8 @@
 
 #include <QWidget>
 
+class QKeyEvent;
+
 namespace drpdf {
 
 class ToolCard : public QWidget {
@@ -22,6 +24,7 @@ protected:
     void enterEvent(QEnterEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     Tool tool_;

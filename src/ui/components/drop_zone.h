@@ -3,6 +3,8 @@
 #include <QStringList>
 #include <QWidget>
 
+class QTimer;
+
 namespace drpdf {
 
 class DropZone : public QWidget {
@@ -27,11 +29,15 @@ protected:
 
 private:
     QStringList filter(const QStringList& in) const;
+    void setHover(bool on);
+
     QString title_ = QStringLiteral("Drop files here");
     QString subtitle_ = QStringLiteral("or click to browse");
     bool hover_ = false;
     bool acceptPdf_ = true;
     bool acceptImages_ = false;
+    QTimer* pulse_ = nullptr;
+    qreal phase_ = 0;
 };
 
 } // namespace drpdf

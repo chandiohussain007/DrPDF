@@ -67,6 +67,9 @@ MergeView::MergeView(ThumbnailCache* cache, QWidget* parent) : QWidget(parent) {
         }
         grid_->refresh();
     });
+    connect(grid_, &PageGrid::rotateRequested, rot, &QPushButton::click);
+    connect(grid_, &PageGrid::deleteRequested, del, &QPushButton::click);
+
     connect(del, &QPushButton::clicked, this, [this] {
         grid_->applyVisualOrder();
         auto rows = grid_->selectedRows();

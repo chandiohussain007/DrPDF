@@ -20,6 +20,10 @@ public:
     QString lastDirectory() const;
     void setLastDirectory(const QString& dir);
 
+    bool sidebarCollapsed() const;
+    void setSidebarCollapsed(bool collapsed);
+
+
 private:
     AppSettings();
     QSettings* s_ = nullptr;

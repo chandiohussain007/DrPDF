@@ -5,15 +5,21 @@
 
 #include <QApplication>
 #include <QFileInfo>
+#include <QIcon>
 
 int main(int argc, char* argv[]) {
     QApplication::setApplicationName(QStringLiteral("Dr PDF"));
     QApplication::setOrganizationName(QStringLiteral("DrPdf"));
-    QApplication::setApplicationVersion(QStringLiteral("0.1.0"));
+    QApplication::setApplicationVersion(QStringLiteral("1.0.0"));
+
     QApplication::setDesktopFileName(QStringLiteral("app.drpdf.desktop"));
 
     QApplication app(argc, argv);
-    app.setWindowIcon(drpdf::Icons::app(64));
+    QIcon appIcon(QStringLiteral(":/logo.png"));
+    if (appIcon.isNull()) {
+        appIcon = drpdf::Icons::app(64);
+    }
+    app.setWindowIcon(appIcon);
 
     auto& theme = drpdf::Theme::instance();
     theme.setDark(drpdf::AppSettings::instance().darkTheme());

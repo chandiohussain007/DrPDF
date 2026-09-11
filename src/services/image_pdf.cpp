@@ -6,15 +6,14 @@
 #include <QPainter>
 #include <QPdfWriter>
 
-
 #include <functional>
 
 namespace drpdf {
 
-core::Result<void> writeImagesToPdf(const QStringList& imagePaths, const QString& outputPath,
+core::Result<void> writeImagesToPdf(const QVector<ImageInput>& images, const QString& outputPath,
                                     const ImagePdfOptions& options,
                                     std::function<void(int, int)> progress) {
-    if (imagePaths.isEmpty()) {
+    if (images.isEmpty()) {
         return core::Error{"no images selected"};
     }
 
@@ -36,23 +35,27 @@ core::Result<void> writeImagesToPdf(const QStringList& imagePaths, const QString
         return core::Error{"could not start PDF writer"};
     }
 
-    for (int i = 0; i < imagePaths.size(); ++i) {
+    for (int i = 0; i < images.size(); ++i) {
         if (progress) {
-            progress(i, imagePaths.size());
+            progress(i, images.size());
         }
-        QImageReader reader(imagePaths[i]);
+        QImageReader reader(images[i].path);
         reader.setAutoTransform(true);
         QImage img = reader.read();
         if (img.isNull()) {
             painter.end();
-            return core::Error{"failed to read image: " + imagePaths[i].toStdString() + " (" +
+            return core::Error{"failed to read image: " + images[i].path.toStdString() + " (" +
                                reader.errorString().toStdString() + ")"};
+        }
+        if (images[i].width > 0 && images[i].height > 0 &&
+            (images[i].width != img.width() || images[i].height != img.height())) {
+            img = img.scaled(images[i].width, images[i].height, Qt::IgnoreAspectRatio,
+                             Qt::SmoothTransformation);
         }
         if (options.fitToImage) {
             const QSizeF mm(img.width() * 25.4 / options.dpi, img.height() * 25.4 / options.dpi);
             QPageLayout fit(QPageSize(mm, QPageSize::Millimeter, QString(), QPageSize::ExactMatch),
-                            QPageLayout::Portrait,
-                            QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
+                            QPageLayout::Portrait, QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
             writer.setPageLayout(fit);
         }
         if (i > 0) {
@@ -66,9 +69,20 @@ core::Result<void> writeImagesToPdf(const QStringList& imagePaths, const QString
     }
     painter.end();
     if (progress) {
-        progress(imagePaths.size(), imagePaths.size());
+        progress(images.size(), images.size());
     }
     return {};
+}
+
+core::Result<void> writeImagesToPdf(const QStringList& imagePaths, const QString& outputPath,
+                                    const ImagePdfOptions& options,
+                                    std::function<void(int, int)> progress) {
+    QVector<ImageInput> items;
+    items.reserve(imagePaths.size());
+    for (const auto& p : imagePaths) {
+        items.push_back(ImageInput{p, 0, 0});
+    }
+    return writeImagesToPdf(items, outputPath, options, std::move(progress));
 }
 
 } // namespace drpdf

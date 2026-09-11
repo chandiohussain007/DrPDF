@@ -75,6 +75,22 @@ OrganizeView::OrganizeView(ThumbnailCache* cache, QWidget* parent) : QWidget(par
         grid_->refresh();
     });
     connect(save, &QPushButton::clicked, this, &OrganizeView::saveAs);
+    connect(grid_, &PageGrid::rotateRequested, this, [this](int deg) {
+        grid_->applyVisualOrder();
+        for (int r : grid_->selectedRows()) {
+            assembly_.rotate(r, deg);
+        }
+        grid_->refresh();
+    });
+    connect(grid_, &PageGrid::deleteRequested, this, [this] {
+        grid_->applyVisualOrder();
+        auto rows = grid_->selectedRows();
+        for (int i = rows.size() - 1; i >= 0; --i) {
+            assembly_.remove(rows[i]);
+        }
+        grid_->refresh();
+    });
+
 
     root->addWidget(title);
     root->addWidget(hint);

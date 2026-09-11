@@ -4,9 +4,11 @@
 #include "ui/theme/theme.h"
 
 #include <QEnterEvent>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+
 
 
 namespace drpdf {
@@ -18,7 +20,12 @@ ToolCard::ToolCard(Tool tool, const QString& iconName, const QString& title, con
     setCursor(Qt::PointingHandCursor);
     setMinimumSize(220, 132);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    setAccessibleName(title);
+    setAccessibleDescription(subtitle);
+    setFocusPolicy(Qt::StrongFocus);
+    setAttribute(Qt::WA_Hover, true);
 }
+
 
 void ToolCard::enterEvent(QEnterEvent*) {
     hover_ = true;
@@ -30,18 +37,24 @@ void ToolCard::leaveEvent(QEvent*) {
     update();
 }
 
-void ToolCard::mouseReleaseEvent(QMouseEvent* event) {
-    if (event->button() == Qt::LeftButton) {
-        emit activated(tool_);
+void ToolCard::keyPressEvent(QKeyEvent* event) {
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Space) {
+        if (ready_) {
+            emit activated(tool_);
+        }
+        return;
     }
+    QWidget::keyPressEvent(event);
 }
+
 
 void ToolCard::paintEvent(QPaintEvent*) {
     const auto& t = Theme::instance().tokens();
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing);
     QPainterPath path;
-    path.addRoundedRect(rect().adjusted(1, 1, -1, -1), 16, 16);
+    path.addRoundedRect(rect().adjusted(1, 1, -1, -1), 12, 12);
+
     p.fillPath(path, hover_ ? t.surfaceHover : t.surface);
     p.setPen(QPen(hover_ ? t.accent : t.border, hover_ ? 1.6 : 1));
     p.drawPath(path);
@@ -54,7 +67,7 @@ void ToolCard::paintEvent(QPaintEvent*) {
         badge.setPixelSize(10);
         badge.setWeight(QFont::DemiBold);
         p.setFont(badge);
-        const QString label = QStringLiteral("LATER");
+        const QString label = QStringLiteral("COMING SOON");
         const QRect br = QFontMetrics(badge).boundingRect(label).adjusted(-8, -3, 8, 3);
         QRect box(width() - br.width() - 16, 16, br.width(), br.height());
         QPainterPath bpath;
@@ -78,4 +91,15 @@ void ToolCard::paintEvent(QPaintEvent*) {
     p.drawText(QRect(20, 92, width() - 36, 24), Qt::AlignLeft | Qt::AlignVCenter, subtitle_);
 }
 
+void ToolCard::mouseReleaseEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton) {
+        if (ready_) {
+            emit activated(tool_);
+        }
+        return;
+    }
+    QWidget::mouseReleaseEvent(event);
+}
+
 } // namespace drpdf
+
